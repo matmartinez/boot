@@ -44,7 +44,9 @@ else
   case "$install_ohmyzsh" in
     [yY]*)
       echo "Installing Oh My Zsh..."
-      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+      
+      # Run with --unattended for a non-interactive install
+      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
       ;;
     *)
       echo "Skipping Oh My Zsh installation."
@@ -98,4 +100,4 @@ LOCAL_ALIASES="${SCRIPT_DIR}/aliases.sh"
 
 ln -s "$LOCAL_ALIASES" "$BOOT_ALIASES_FILE"
 
-echo "Done!"
+echo "Done! Don't forget to restart your terminal!"
