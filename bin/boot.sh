@@ -180,8 +180,13 @@
     
     # Check if Tailscale is installed
     if ! command -v tailscale &> /dev/null; then
-      add_row "Status" "Tailscale is not installed as CLI."
-      return 1 # Exit the function here
+        # Fallback to the macOS Tailscale binary if available
+        if [[ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]]; then
+            alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+        else
+            add_row "Status" "Tailscale is not installed as CLI."
+            return 1 # Exit the function here
+        fi
     fi
     
     # Check if jq is installed
