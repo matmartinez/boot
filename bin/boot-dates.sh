@@ -8,17 +8,33 @@ epoch_to_readable_time() {
   local input_epoch=$1
   local current_epoch=$(date +%s)
   local diff=$((input_epoch - current_epoch))
-  local abs_diff=${diff#-} # Absolute value of difference
-  
-  local minutes=$((abs_diff / 60 % 60))
-  local hours=$((abs_diff / 3600 % 24))
-  local days=$((abs_diff / 86400))
-  local result=""
   
   if [[ $diff -eq 0 ]]; then
     echo "just now"
     return
   fi
+  
+  local duration=$(seconds_to_readable_duration $diff)
+  
+  if [[ $diff -lt 0 ]]; then
+    echo "$duration ago"
+  else
+    echo "in $duration"
+  fi
+}
+
+# seconds_to_readable_duration $input_seconds → $output_readable_duration
+# Converts a duration in seconds into a human-readable time interval format.
+# $input_epoch: A single argument representing a duration in seconds.
+# $output_readable_duration: Returns a human-friendly string such as "1 minute", 2 hours ago", or "3 days".
+seconds_to_readable_duration(){
+  local input_seconds=$1
+  local diff=${input_seconds#-}
+  
+  local minutes=$((diff / 60 % 60))
+  local hours=$((diff / 3600 % 24))
+  local days=$((diff / 86400))
+  local result=""
   
   if [[ $days -gt 0 ]]; then
     result+="$days day"; [[ $days -gt 1 ]] && result+="s"
@@ -38,11 +54,7 @@ epoch_to_readable_time() {
     result="less than a minute"
   fi
   
-  if [[ $diff -lt 0 ]]; then
-    echo "$result ago"
-  else
-    echo "in $result"
-  fi
+  echo $result
 }
 
 # duration_to_seconds $input_string → $output_seconds

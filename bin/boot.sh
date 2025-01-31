@@ -1,5 +1,8 @@
 #!/bin/zsh
 
+source boot-scripting.sh
+source boot-dates.sh
+
 (
   # Enable 0-based arrays in ZSH
   setopt KSH_ARRAYS
@@ -90,10 +93,10 @@
     for (( i=0; i<${#columns_1[@]}; i++ )); do
         if [[ ${is_header[i]} -eq 1 ]]; then
             # Print header
-            printf "\n\e[1;90m%s\e[0m\n" "${columns_1[i]}"
+            printf "\n${TEXT_BOLD_DARK_GRAY}%s${TEXT_RESET}\n" "${columns_1[i]}"
         else
             # Print regular row
-            printf "\e[2;37m%${max_width}s\e[0m %s\n" "${columns_1[i]}" "${columns_2[i]}"
+            printf "${TEXT_LIGHT_GRAY}%${max_width}s${TEXT_RESET} %s\n" "${columns_1[i]}" "${columns_2[i]}"
         fi
     done
     
@@ -117,11 +120,10 @@
     add_header "💣" "ABOUT"
     
     # Uptime
-    local human_uptime=$(uptime | sed -E 's/^[^,]*up *//; s/mins/minutes/; s/hrs?/hours/;
-    s/([[:digit:]]+):0?([[:digit:]]+)/\1 hours, \2 minutes/;
-    s/^1 hours/1 hour/; s/ 1 hours/ 1 hour/;
-    s/min,/minutes,/; s/ 0 minutes,/ less than a minute,/; s/ 1 minutes/ 1 minute/;
-    s/  / /; s/, *[[:digit:]]* users?.*//')
+    local current_epoch=$(date +%s)
+    local uptime_epoch=$(($(sysctl -n kern.boottime | awk '{print $4}' | tr -d ',')))
+    local uptime_seconds=$((current_epoch - uptime_epoch))
+    local human_uptime=$(seconds_to_readable_duration uptime_seconds)
     
     add_row "Uptime" "${human_uptime}"
     
@@ -211,7 +213,7 @@
   }
   
   print_progress(){
-    printf "\n\e[2;37m%s\e[0m\n" "Thinking…" # Print a new line and the progress message
+    printf "\n${TEXT_LIGHT_GRAY}%s${TEXT_RESET}\n" "Thinking…" # Print a new line and the progress message
   }
   
   clear_progress(){
