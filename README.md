@@ -31,7 +31,7 @@ cd boot
 Then run the install script:
 
 ```sh
-source boot_install.sh
+source boot-install.sh
 ```
 
 You’re done.
