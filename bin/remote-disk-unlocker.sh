@@ -4,6 +4,9 @@
 # A script to unlock encrypted APFS disks remotely.
 #
 
+# Grab the basename
+script_name=$(basename "$0")
+
 # Function to retrieve passphrase
 get_passphrase() {
     local disk="$1"
@@ -56,8 +59,8 @@ usage() {
     echo "💬 Unlock encrypted APFS disks remotely via SSH."
     echo
     echo "Usage:"
-    echo "  $0 --configure <disk1> [disk2] ...         Save passphrases for disks"
-    echo "  $0 --unlock    <host> <disk1> [disk2] ...  Unlock disks on a remote host"
+    echo "  $script_name --configure <disk1> [disk2] ...         Save passphrases for disks"
+    echo "  $script_name --unlock    <host> <disk1> [disk2] ...  Unlock disks on a remote host"
     echo
     echo "Options:"
     echo "  --unlock <host>  Unlock specified disks on a remote machine via SSH."
@@ -65,8 +68,8 @@ usage() {
     echo "  --help           Show this help message."
     echo
     echo "Examples:"
-    echo "  $0 --configure \"Dingus\""
-    echo "  $0 --unlock mac-mini.local \"Dingus\""
+    echo "  $script_name --configure \"Dingus\""
+    echo "  $script_name --unlock mac-mini.local \"Dingus\""
     exit 1
 }
 
