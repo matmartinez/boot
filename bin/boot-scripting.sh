@@ -7,6 +7,7 @@
 #  
 TEXT_GREEN=$(tput setaf 2)      # Green attribute
 TEXT_RED=$(tput setaf 1)        # Red attribute
+TEXT_YELLOW=$(tput setaf 3)     # Yellow attribute
 TEXT_DARK_GRAY=$(tput setaf 8)  # Dark Gray attribute
 TEXT_LIGHT_GRAY=$(tput setaf 7) # Light Gray attribute
 TEXT_BOLD=$(tput bold)          # Bold attribute
@@ -48,4 +49,24 @@ confirm() {
   reply=${reply:-$default}
 
   [[ "$reply" =~ ^[Yy]$ ]]
+}
+
+# ensure_sudo
+# Ensures the user has active sudo privileges
+#
+# This function repeatedly prompts the user for their password if they do not
+# have an active sudo session. It verifies sudo access using `sudo -v`, which
+# refreshes or initializes the timestamp for sudo authentication.
+#
+# If the password is incorrect, the user is prompted again until successful.
+# Error messages from `sudo -v` are suppressed for a cleaner user experience.
+#
+# Example Usage:
+#   ensure_sudo
+#   sudo shutdown -h now  # Now runs without additional password prompt
+#
+ensure_sudo() {
+  while ! sudo -v; do
+    echo "${TEXT_YELLOW}Incorrect password or sudo access denied. Please try again.${TEXT_RESET}"
+  done
 }
