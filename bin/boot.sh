@@ -93,7 +93,7 @@ source boot-dates.sh
     for (( i=0; i<${#columns_1[@]}; i++ )); do
         if [[ ${is_header[i]} -eq 1 ]]; then
             # Print header
-            printf "\n${TEXT_BOLD_DARK_GRAY}%s${TEXT_RESET}\n" "${columns_1[i]}"
+            printf "\n${TEXT_BOLD}${TEXT_DARK_GRAY}%s${TEXT_RESET}\n" "${columns_1[i]}"
         else
             # Print regular row
             printf "${TEXT_LIGHT_GRAY}%${max_width}s${TEXT_RESET} %s\n" "${columns_1[i]}" "${columns_2[i]}"
