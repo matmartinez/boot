@@ -1,0 +1,397 @@
+#!/bin/zsh
+
+set -e
+source boot-scripting.sh
+
+# Grab basename
+script_name=$(basename "$0")
+
+# Function to display usage instructions
+usage() {
+  echo "🚜 Automates app installs, system settings, and workspace setup on macOS."
+  echo
+  echo "Usage:"
+  echo "  $script_name [--upgrade]"
+  echo
+  echo "Options:"
+  echo "  (no args)   Run the set up process."
+  echo "  --upgrade   Run the upgrade process unattended."
+  echo
+  echo "Notes:"
+  echo "  - Any other arguments will result in an error."
+}
+
+# List of apps to install from Homebrew Cask.
+cask_apps=(
+  eloston-chromium "Ungoogled Chromium"
+  figma            "Figma"
+  nova             "Nova"
+  tower            "Tower"
+  kaleidoscope     "Kaleidoscope"
+  sf-symbols       "SF Symbols"
+  the-unarchiver   "The Unarchiver"
+  transmit         "Transmit"
+  whatsapp         "WhatsApp"
+  balenaetcher     "balenaEtcher"
+  proxyman         "Proxyman"
+)
+
+# List of apps to install from the Mac App Store.
+mas_apps=(
+  430255202        "Mactracker"
+  290986013        "Deliveries"
+  1622835804       "Kagi for Safari"
+  1037126344       "Apple Configurator"
+  1233368267       "Linea Link"
+  1475387142       "Tailscale"
+  1529448980       "Reeder"
+  6444602274       "Ivory"
+  1365531024       "1Blocker"
+  775737590        "iA Writer"
+  1091675654       "Shapr3D"
+  409907375        "Remote Desktop"
+  6475002485       "Reeder"
+  904280696        "Things"
+  1289583905       "Pixelmator Pro"
+  424389933        "Final Cut Pro"
+  634148309        "Logic Pro"
+  696977615        "Capo"
+  1233368267       "Linea Link"
+  497799835        "Xcode"
+)
+
+# List of server extras to install from Homebrew Cask
+server_cask_apps=(
+  launchcontrol    "LaunchControl"
+  softraid         "SoftRAID"
+)
+
+# List of default directories that will be created.
+directories=(
+  "$HOME/Developer"
+  "$HOME/Sites"
+)
+
+# Settings that will be applied.
+defaults_write_settings(){
+  # Enable character repetition when holding a key instead of that ugly popup.
+  defaults write -g ApplePressAndHoldEnabled -bool false
+  
+  # Always display proxy icons.
+  defaults write -g NSTitlebarTitleVisibility -string "visible"
+  
+  # Tap to click.
+  defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+  defaults write -g com.apple.mouse.tapBehavior -int 1
+  
+  # Disable Siri on the menu bar.
+  defaults write com.apple.Siri StatusMenuVisible -int 0
+  
+  # Disable 'Click Wallpaper to Reveal Desktop".
+  defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
+  
+  # Sidebar icon size: Large.
+  defaults write -g "NSTableViewDefaultSizeMode" -int "3"
+  
+  # Don't display recent apps in the Dock.
+  defaults write com.apple.dock "show-recents" -bool "false"
+  
+  # Don't display a thumbnail after taking a screenshot.
+  defaults write com.apple.screencapture "show-thumbnail" -bool "false"
+  
+  # Spotlight should search on the current folder by default.
+  defaults write com.apple.finder "FXDefaultSearchScope" -string "SCcf"
+  
+  # Show hard disks on Desktop.
+  defaults write com.apple.finder "ShowHardDrivesOnDesktop" -bool "true"
+  
+  # New Finder windows show the Desktop.
+  defaults write com.apple.finder NewWindowTargetPath -string "file://$HOME/Desktop/"
+  
+  # Key repeat
+  defaults write -g InitialKeyRepeat -int 25
+  defaults write -g KeyRepeat -int 2
+  
+  # Disable automatic text completion popup.
+  defaults write -g NSAutomaticTextCompletionEnabled -bool false
+}
+
+# This function runs if no options are passed, runs interactively.
+setup(){
+  echo -n $TEXT_BOLD
+  echo "          __        "
+  echo "     w  c(..)o   (  "
+  echo "      \__(-)    __) "
+  echo "          /\   (    "
+  echo "         /(_)___)   "
+  echo "         w /|       "
+  echo "          | \       "
+  echo "         m  m       "
+  echo
+  echo "| Welcome to the wizard."
+  echo "| I'll be your guide."
+  echo 
+  echo -n $TEXT_RESET
+  
+  # Step 1
+  if confirm "Create default directories?" "Y"; then
+    echo "Creating default directories..."
+    create_default_directories
+  else
+    echo "Skipped."
+  fi
+  
+  # Step 2
+  if confirm "Write settings?" "Y"; then
+    echo "Writing settings..."
+    defaults_write_settings
+    
+    if confirm "Restart Finder and other UI processes now so some settings take effect? ${TEXT_YELLOW}Note that some settings require a logout to take effect. This won't do that.${TEXT_RESET}" "Y"; then
+      echo "Freshing things up..."
+      respring
+    else
+      echo "Skipped."
+    fi
+  else
+    echo "Skipped."
+  fi
+  
+  # Step 3
+  echo "${TEXT_BOLD}Essential apps: ${TEXT_RESET}"
+  print_list_app_names $cask_apps
+  
+  if confirm "Install essential apps?" "Y"; then
+    echo "Installing essential apps..."
+    brew_install_casks $cask_apps
+  else
+    echo "Skipped."
+  fi
+  
+  # Step 4
+  echo "${TEXT_BOLD}Apps from the Mac App Store: ${TEXT_RESET}"
+  print_list_app_names $mas_apps
+  
+  if confirm "Install essential Mac App Store apps?" "Y"; then
+    mas_install_apps $mas_apps
+  else
+    echo "Skipped."
+  fi
+  
+  # Step 5 (optional)
+  echo "${TEXT_BOLD}Server extras: ${TEXT_RESET}"
+  print_list_app_names $server_cask_apps
+  
+  if confirm "Install server extras?" "N"; then
+    echo "Installing server extras..."
+    
+    mas_install_apps $server_cask_apps
+  else
+    echo "Skipped."
+  fi
+  
+  # Step 6 (optional)
+  if confirm "Set up Tailscale as a service? (so it runs before login)" "N"; then
+    echo "Setting up Tailscale..."
+    
+    setup_tailscale_as_service
+  else
+    echo "Skipped."
+  fi
+  
+  # Step 7 (optional)
+  if confirm "Set up Remote Desktop?" "N"; then
+    echo "Setting up Remote Desktop..."
+    
+    setup_remote_desktop
+  else
+    echo "Skipped."
+  fi
+}
+
+# This function runs if the --upgrade option is passed, and upgrades existing casks and mas apps.
+upgrade(){
+  echo "Upgrading casks..."
+  brew upgrade --cask --greedy
+  
+  echo "Upgrading mas..."
+  ensure_mas_installed
+  mas upgrade
+}
+
+respring(){
+  /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+  
+  killall -HUP cfprefsd
+  killall SystemUIServer
+  killall -HUP WindowManager
+  killall Finder
+  killall Dock
+}
+
+create_default_directories() {
+  for dir in "${directories[@]}"; do
+    if [ -d "$dir" ]; then
+      echo "Directory already exists at ${TEXT_GREEN}$dir${TEXT_RESET}"
+    else
+      mkdir -p "$dir" && echo "Created directory at ${TEXT_GREEN}$dir${TEXT_RESET}"
+    fi
+  done
+}
+
+brew_install_casks() {
+  # Check if Homebrew is installed
+  if ! command -v brew &>/dev/null; then
+    echo "Error: Homebrew is not installed. Probably forgot to run boot-install.sh"
+    exit 1
+  fi
+
+  # Check if arguments are provided
+  if (( $# == 0 )); then
+    echo "Error: No applications provided. Usage: brew_install_casks id1 \"App Name 1\" id2 \"App Name 2\" ..."
+    exit 1
+  fi
+
+  # Ensure an even number of arguments (each app needs an ID and a name)
+  if (( $# % 2 != 0 )); then
+    echo "Error: Arguments must be in pairs (identifier and title)."
+    exit 1
+  fi
+
+  # Install applications in pairs (ID + Title)
+  skipped_apps=()
+  total=$(($# / 2))
+
+  i=1
+  while (( $# > 0 )); do
+    app_id="$1"
+    app_name="$2"
+    shift 2  # Move to the next app pair
+    
+    echo "Installing ${TEXT_BOLD}$app_name${TEXT_RESET} ($i of $total)..."
+
+    if ! brew install --cask "$app_id"; then
+      echo "Failed to install $app_name ($app_id), skipping..."
+      skipped_apps+=("$app_name")
+    fi
+    ((i++))
+  done
+
+  # Print skipped apps if any
+  if (( ${#skipped_apps[@]} > 0 )); then
+    echo "${TEXT_YELLOW}${TEXT_BOLD}The following apps were skipped:${TEXT_RESET}"
+    print_list_with_bullets $skipped_apps
+  else
+    echo "${TEXT_GREEN}All applications were installed successfully.${TEXT_RESET}"
+  fi
+}
+
+mas_install_apps() {
+  # Check if arguments are provided
+  if (( $# == 0 )); then
+    echo "Error: No applications provided. Usage: brew_install_mas id1 \"App Name 1\" id2 \"App Name 2\" ..."
+    exit 1
+  fi
+  
+  # Ensure `mas` is installed before using it
+  ensure_mas_installed || { echo "Error: Failed to install mas."; return 1; }
+  
+  # Ensure an even number of arguments (each app needs an ID and a name)
+  if (( $# % 2 != 0 )); then
+    echo "Error: Arguments must be in pairs (identifier and title)."
+    exit 1
+  fi
+
+  skipped_apps=()
+  total=$(($# / 2))
+
+  i=1
+  while (( $# > 0 )); do
+    app_id="$1"
+    app_name="$2"
+    shift 2  # Move to the next app pair
+    
+    echo "Installing ${app_name} ($i of $total)..."
+
+    if ! mas install "$app_id"; then
+      echo "Failed to install $app_name ($app_id), skipping..."
+      skipped_apps+=("$app_name")
+    fi
+    ((i++))
+  done
+
+  # Print skipped apps if any
+  if (( ${#skipped_apps[@]} > 0 )); then
+    echo "${TEXT_YELLOW}${TEXT_BOLD}The following apps were skipped:${TEXT_RESET}"
+    print_list_with_bullets $skipped_apps
+  else
+    echo "${TEXT_GREEN}All applications were installed successfully.${TEXT_RESET}"
+  fi
+}
+
+ensure_mas_installed(){
+  if ! command -v mas &>/dev/null; then
+    echo "Installing mas..."
+    brew install mas || { echo "Error: Failed to install mas."; return 1; }
+  fi
+}
+
+print_list_app_names() {
+  apps=()
+  
+  i=1
+  while (( $# > 0 )); do
+    app_name="$2"
+    apps+=("$app_name")
+    
+    shift 2  # Move to the next app pair
+    ((i++))
+  done
+  
+  print_list_with_bullets $apps
+}
+
+setup_tailscale_as_service() {
+  brew install tailscale || { echo "Failed to install Tailscale. Exiting."; return 1; }
+  
+  # Start as a service
+  echo "Requesting sudo access to start Tailscale service..."
+  ensure_sudo
+  
+  sudo brew services start tailscale
+  
+  echo "Running tailscale up"
+  tailscale up
+}
+
+setup_remote_desktop(){
+  echo "Enabling Apple Remote Desktop..."
+  echo "You may be prompted for sudo."
+  ensure_sudo
+  
+  # Enable Remote Management
+  sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on
+  
+  # Allow all users full control
+  sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -allowAccessFor -allUsers
+  
+  # Set privileges for all users
+  sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -privs -all
+  
+  # Enable Remote Login (SSH)
+  sudo systemsetup -setremotelogin on
+  
+  echo "Apple Remote Desktop has been enabled."
+}
+
+# Main script:
+if [[ $# -eq 0 ]]; then
+  setup
+elif [[ $# -eq 1 && "$1" == "--upgrade" ]]; then
+  upgrade
+else
+  echo "Error: Invalid arguments"
+  usage
+  exit 1
+fi
+
+echo "${TEXT_BOLD}Done.${TEXT_RESET} Thanks for all the fish. 🐟"
