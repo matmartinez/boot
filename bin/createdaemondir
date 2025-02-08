@@ -8,13 +8,18 @@ script_name=$(basename "$0")
 
 # Function to display usage instructions
 usage() {
-  echo "👺 Create a daemon user account with a specified UID/GID and name."
+  echo "👺 Create a user account with a home folder to run a daemon."
   echo
   echo "Usage:"
-  echo "  $script_name <uid/gid> <name>   Creates a daemon user account."
+  echo "  $script_name <uid/gid> <name>   Creates a user account with a home folder."
   echo
   echo "Examples:"
   echo "  $script_name 300 _minecraft"
+  echo "  $script_name 301 _homebridge"
+  echo
+  echo "Notes:"
+  echo "  - A hidden home directory for the user will be created inside the Users folder."
+  echo "  - User accounts for daemons (or agents) are typically prefixed with an underscore."
   exit 1
 }
 
