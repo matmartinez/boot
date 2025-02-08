@@ -1,11 +1,26 @@
 #!/bin/zsh
 
-#
-# A script to unlock encrypted APFS disks remotely.
-#
-
 # Grab the basename
 script_name=$(basename "$0")
+
+# Function to display usage instructions
+usage() {
+    echo "💾 Unlock and remount encrypted APFS disks remotely via SSH."
+    echo
+    echo "Usage:"
+    echo "  $script_name --configure <disk1> [disk2] ...         Save passphrases for disks"
+    echo "  $script_name --unlock    <host> <disk1> [disk2] ...  Unlock disks on a remote host"
+    echo
+    echo "Options:"
+    echo "  --unlock <host>  Unlock specified disks on a remote machine via SSH."
+    echo "  --configure      Save passphrases for the specified disks in Keychain."
+    echo "  --help           Show this help message."
+    echo
+    echo "Examples:"
+    echo "  $script_name --configure \"Dingus\""
+    echo "  $script_name --unlock mac-mini.local \"Dingus\""
+    exit 1
+}
 
 # Function to retrieve passphrase
 get_passphrase() {
@@ -52,25 +67,6 @@ unlock_disk_remote() {
 
     echo "Unlocking $disk on $remote_host..."
     ssh "$remote_host" "diskutil apfs unlockVolume \"$disk\" -passphrase \"$passphrase\""
-}
-
-# Main script
-usage() {
-    echo "💬 Unlock encrypted APFS disks remotely via SSH."
-    echo
-    echo "Usage:"
-    echo "  $script_name --configure <disk1> [disk2] ...         Save passphrases for disks"
-    echo "  $script_name --unlock    <host> <disk1> [disk2] ...  Unlock disks on a remote host"
-    echo
-    echo "Options:"
-    echo "  --unlock <host>  Unlock specified disks on a remote machine via SSH."
-    echo "  --configure      Save passphrases for the specified disks in Keychain."
-    echo "  --help           Show this help message."
-    echo
-    echo "Examples:"
-    echo "  $script_name --configure \"Dingus\""
-    echo "  $script_name --unlock mac-mini.local \"Dingus\""
-    exit 1
 }
 
 # Argument parsing

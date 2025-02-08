@@ -12,7 +12,7 @@ script_name=$(basename "$0")
 
 # Function to display usage instructions
 usage() {
-    echo "💬 Monitor Time Machine backup age remotely via SSH."
+    echo "⏰ Monitor Time Machine backup age remotely over SSH."
     echo
     echo "Usage:"
     echo "  $script_name <host1> <host2> ... --max-age <time>"
