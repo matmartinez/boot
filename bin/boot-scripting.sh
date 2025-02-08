@@ -70,3 +70,28 @@ ensure_sudo() {
     echo "${TEXT_YELLOW}Incorrect password or sudo access denied. Please try again.${TEXT_RESET}"
   done
 }
+
+# print_with_bullets
+# Prints each item in the input as a bulleted list.
+# 
+# Arguments:
+#   $1 - The list of strings to be printed as a bulleted list.
+#
+# Example Usage:
+#   cities=(
+#     talca
+#     paris
+#     london
+#   )
+#   print_with_bullets $cities
+# 
+# Output:
+#   - talca
+#   - paris
+#   - london
+#
+print_list_with_bullets() {
+  for item in "$@"; do
+    echo "  ${TEXT_DARK_GRAY}-${TEXT_RESET} $item"
+  done
+}
