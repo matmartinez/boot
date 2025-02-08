@@ -1,16 +1,21 @@
 #!/bin/zsh
 
-# Request sudo access at the start of the script
-ensure_sudo() {
-  echo "This script requires sudo privileges. Please enter your password."
-  sudo -v || { echo "Error: Sudo privileges are required. Exiting."; exit 1; }
-  
-  # Keep sudo alive until the script ends
-  while true; do
-    sudo -n true
-    sleep 60
-    kill -0 "$$" || exit
-  done 2>/dev/null &
+set -e
+source boot-scripting.sh
+
+# Grab the basename
+script_name=$(basename "$0")
+
+# Function to display usage instructions
+usage() {
+  echo "👺 Create a daemon user account with a specified UID/GID and name."
+  echo
+  echo "Usage:"
+  echo "  $script_name <uid/gid> <name>   Creates a daemon user account."
+  echo
+  echo "Examples:"
+  echo "  $script_name 300 _minecraft"
+  exit 1
 }
 
 # Function to check if UID or GID is already in use
@@ -112,10 +117,11 @@ create_daemon_account() {
 
 # Main Execution
 if [[ $# -ne 2 ]]; then
-  echo "Usage: $0 <uid/gid> <name>"
-  echo "Example: $0 300 _minecraft"
+  usage
   exit 1
 fi
+
+echo "This script requires sudo privileges. Please enter your password."
 
 ensure_sudo
 create_daemon_account "$1" "$2"
