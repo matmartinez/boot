@@ -69,6 +69,13 @@ ensure_sudo() {
   while ! sudo -v; do
     echo "${TEXT_YELLOW}Incorrect password or sudo access denied. Please try again.${TEXT_RESET}"
   done
+  
+  # Keep sudo alive until the script ends
+  while true; do
+    sudo -n true
+    sleep 60
+    kill -0 "$$" || exit
+  done 2>/dev/null &
 }
 
 # print_with_bullets
