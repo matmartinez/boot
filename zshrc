@@ -20,5 +20,5 @@ export BOOT="$HOME/.boot"
 # Ensure Boot scripts are in your $PATH
 export PATH="$BOOT/bin:$PATH"
 
-source $BOOT/aliases
+source $BOOT/aliases.sh
 source $BOOT/bin/boot.sh

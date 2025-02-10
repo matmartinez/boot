@@ -58,7 +58,7 @@ fi
 # In zsh, "${0:A:h}" gives the absolute path to the repo's directory.
 SCRIPT_DIR=${0:A:h}
 
-echo "Boot repo path is ${SCRIPT_DIR}"
+echo "Boot repository path is ${SCRIPT_DIR}"
 
 # Backup any existing ~/.zshrc to ~/.zshrc.bak (if it exists).
 if [[ -f ~/.zshrc ]]; then
@@ -67,37 +67,23 @@ if [[ -f ~/.zshrc ]]; then
 fi
 
 # Create a symbolic link from ~/.zshrc to the local 'zshrc' file.
+echo "Symlinking ~/.zshrc to zshrc inside the repository..."
+
 ln -s "${SCRIPT_DIR}/zshrc" ~/.zshrc
 
 echo "Success! ~/.zshrc now points to ${SCRIPT_DIR}/zshrc"
 
 # Set up ~/.boot folder
 BOOT_DIR="$HOME/.boot"
-BOOT_BIN="$BOOT_DIR/bin"
-BOOT_ALIASES_FILE="$BOOT_DIR/aliases"
 
-# **Destructive**: Remove ~/.boot if it exists
-if [[ -e "$BOOT_DIR" ]]; then
-  echo "Removing existing $BOOT_DIR (and all contents)..."
-  rm -rf "$BOOT_DIR"
+# Check if the file exists and is a symlink
+if [[ -L "$BOOT_DIR" ]]; then
+  echo "Removing previous symlink: $BOOT_DIR"
+  rm "$BOOT_DIR"
 fi
 
-# Re-create a fresh ~/.boot (and subfolders)
-mkdir -p "$BOOT_DIR"
-
-# Symlink the repo scripts folder
-LOCAL_BIN_DIR="${SCRIPT_DIR}/bin"
-
-echo "Symlinking the bin folder from the repo to $BOOT_BIN ..."
-ln -s "$LOCAL_BIN_DIR" "$BOOT_BIN"
-
-# Aliases
-
-echo "Symlinking the aliases file from the repo to $BOOT_DIR ..."
-
-# Create or update ~/.boot/aliases
-LOCAL_ALIASES="${SCRIPT_DIR}/aliases.sh"
-
-ln -s "$LOCAL_ALIASES" "$BOOT_ALIASES_FILE"
+# Set up alias
+echo "Symlinking the boot repository at ${SCRIPT_DIR} to $BOOT_DIR ..."
+ln -s "$SCRIPT_DIR" "$BOOT_DIR"
 
 echo "Done! Don't forget to restart your terminal!"
