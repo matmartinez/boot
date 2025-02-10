@@ -1,0 +1,273 @@
+#!/usr/bin/env zsh
+
+# Disable shell tracing
+set +x  
+
+# Hide the cursor and clear the screen.
+tput civis
+clear
+
+# On exit (or interrupt), restore the cursor and clear the screen.
+cleanup() {
+  tput cnorm
+  clear
+  exit
+}
+trap cleanup SIGINT SIGTERM
+
+# Loading screen:
+echo "Starting nsfw..."
+
+# Frames inside a base-64 encoded string.
+zip_frame_data="UEsDBBQAAAAIACCaSVpZM8iRSwEAAHgPAAAKABwAZnJhbWVzLnR4dFVUCQADWympZ5ApqWd1eAsAAQT1AQAABBQAAADtV10awyAIu1JL7n+3VasTNBT7sz2Vl+1bMlEkKV2WfwUA9UHwdZUNgohQBmRNjIRTRgI2Qo0xDaQL2L0MeJ+JExRDERAyJgnDeekS9BwAKMHss3I8QrhCsAmHcL4QHcPDHyQYBnLs39QxWrQfljeGCKqSKnvkD2iXkE3AIyQLyCbQM9pVVo9Ii6hktOW1GbntUhkhwfUHNwc6fEY3Wv7UAG5LL1TO7VL5+CxBdwxMJdopYMVqhfzGj8Mt9H4FzREGWLzH1o6bMUDsBee/F4sYG0KK5A189YmCEf8SBp0HGSLlMdxp+jNHYIz70pzQrrIto15tc51aX+3WiOoAW0mOc0aRpksw0jylzbJ8p007cxJtGnUfdNTitZ2D33huetp2l+AEJl5VezB78VJc3AInXHxNemC8mJ4/Zkb7MsrDto0pRNWRGvIfM5gPUEsBAh4DFAAAAAgAIJpJWlkzyJFLAQAAeA8AAAoAGAAAAAAAAQAAAKSBAAAAAGZyYW1lcy50eHRVVAUAA1spqWd1eAsAAQT1AQAABBQAAABQSwUGAAAAAAEAAQBQAAAAjwEAAAAA"
+
+# Frame animation duration.
+frame_duration=0.085
+
+# Global frame buffer (will be rebuilt every frame).
+frame_buffer=""
+
+# Initialize an array to hold all frames.
+frames=()
+
+# Global variable to store the chosen random background escape code.
+background_code=""
+
+# Define an escape variable so that sequences are interpreted properly.
+ESC=$'\033'
+
+# Terminal and sprite geometry.
+cols=$(tput cols)
+rows=$(tput lines)
+
+# Sprite dimensions
+typeset -i num_frames=4
+typeset -i sprite_width=33
+typeset -i sprite_height=30
+
+# Since we are printing two spaces per sprite pixel, the printed width is doubled.
+typeset -i printed_width=$(( sprite_width * 2 ))
+
+# Calculate the top-left corner so that the sprite is centered.
+typeset -i start_col=$(( (cols - printed_width) / 2 ))
+typeset -i start_row=$(( (rows - sprite_height) / 2 ))
+
+# decode_sprites:
+#
+# Decodes the compressed sprite data into the frames array.
+decode_sprites(){
+  # Decode the base64 data into a temporary zip file.
+  echo "$zip_frame_data" | base64 -d > temp.zip
+  
+  # Unzip the file and capture its contents into a variable.
+  decoded_frame_data=$(unzip -p temp.zip)
+  rm temp.zip
+  
+  # Split the decoded frame data into individual frames
+  
+  # Set the sprite dimensions and number of frames.
+  typeset -i frame_size=$(( sprite_width * sprite_height ))
+  
+  # Loop over each frame index.
+  for (( f = 0; f < num_frames; f++ )); do
+    # Extract the substring for this frame.
+    frame_data=${decoded_frame_data:$(( f * frame_size )):$frame_size}
+    
+    # Build a multi-line string for this frame.
+    frame_str=""
+    for (( i = 0; i < sprite_height; i++ )); do
+      row_start=$(( i * sprite_width ))
+      row=${frame_data:$row_start:$sprite_width}
+      frame_str+="$row"$'\n'
+    done
+    frames+=("$frame_str")
+  done
+}
+
+decode_sprites
+
+# get_bg:
+#
+# Returns the ANSI escape code for the background color corresponding to a sprite pixel.
+# Mapping:
+#   0 → Transparent: use the current background
+#   1 → Light-pink: ANSI 256 color 218
+#   2 → Pink:       ANSI 256 color 13
+#   3 → Dark gray:  ANSI 256 color 236
+get_bg() {
+  local p=$1
+  case $p in
+    0) printf "%s" "$background_code" ;;  # Transparent → use the current background.
+    1) printf "${ESC}[48;5;218m" ;;
+    2) printf "${ESC}[48;5;13m" ;;
+    3) printf "${ESC}[48;5;236m" ;;
+    *) printf "%s" "$background_code" ;;
+  esac
+}
+
+# fill_screen
+#
+# Fills the entire terminal screen with the specified background color.
+# Instead of writing each line directly to the screen, the escape sequences
+# and spaces are appended to the global frame_buffer.
+fill_screen() {
+  local bg="$1"
+  local i
+  for (( i = 0; i < rows; i++ )); do
+    # ANSI escape: move cursor to row (i+1), column 1.
+    frame_buffer+=$(printf "${ESC}[%d;%dH" "$(( i + 1 ))" 1)
+    frame_buffer+=$(printf "%b%${cols}s${ESC}[0m" "$bg" "")
+  done
+}
+
+# print_frame
+#
+# Renders one sprite frame into the frame_buffer.
+# Each sprite pixel is drawn as two space characters (with its background set).
+# This version groups consecutive pixels of the same color to reduce the number of
+# escape sequences.
+print_frame() {
+  local frame_data="$1"
+  # Split the frame data by newline into an array of rows.
+  local frame_rows=("${(f)frame_data}")
+  local i j row pixel current_color new_color group_length group_str
+  for (( i = 1; i <= sprite_height; i++ )); do
+    # Move the cursor to the start of the sprite row.
+    frame_buffer+=$(printf "${ESC}[%d;%dH" "$(( start_row + i ))" "$(( start_col + 1 ))")
+    row="${frame_rows[i]}"
+    current_color=""
+    group_length=0
+    # Loop through each pixel in the row.
+    for (( j = 1; j <= ${#row}; j++ )); do
+      pixel=${row:$(( j - 1 )):1}
+      new_color=$(get_bg "$pixel")
+      if [[ "$new_color" == "$current_color" ]]; then
+        (( group_length++ ))
+      else
+        if (( group_length > 0 )); then
+          group_str=""
+          for (( k = 0; k < group_length; k++ )); do
+            group_str+="  "
+          done
+          # Use the ESC variable so that the escape sequence is interpreted correctly.
+          frame_buffer+="${current_color}${group_str}${ESC}[0m"
+        fi
+        current_color="$new_color"
+        group_length=1
+      fi
+    done
+    # Flush the remaining group for the row.
+    if (( group_length > 0 )); then
+      group_str=""
+      for (( k = 0; k < group_length; k++ )); do
+        group_str+="  "
+      done
+      frame_buffer+="${current_color}${group_str}${ESC}[0m"
+    fi
+  done
+}
+
+# draw_border
+#
+# Draws a 1-cell–thick border around the terminal by appending the
+# proper escape sequences to frame_buffer.
+draw_border() {
+  local border="$1"
+  local i
+  # Top border.
+  frame_buffer+=$(printf "${ESC}[%d;%dH" 1 1)
+  frame_buffer+=$(printf "%b%${cols}s${ESC}[0m" "$border" "")
+  # Bottom border.
+  frame_buffer+=$(printf "${ESC}[%d;%dH" "$rows" 1)
+  frame_buffer+=$(printf "%b%${cols}s${ESC}[0m" "$border" "")
+  # Left and right borders.
+  for (( i = 2; i <= rows - 1; i++ )); do
+    # Left border: column 1.
+    frame_buffer+=$(printf "${ESC}[%d;%dH" "$i" 1)
+    frame_buffer+=$(printf "%b\u0020\u0020${ESC}[0m" "$border")
+    # Right border: column (cols - 1) in ANSI terms.
+    frame_buffer+=$(printf "${ESC}[%d;%dH" "$i" "$(( cols - 1 ))")
+    frame_buffer+=$(printf "%b\u0020\u0020${ESC}[0m" "$border")
+  done
+}
+
+# Asynchronous pre-computation of frame sets
+frame_set_fifo="/tmp/frame_set_fifo_$$"
+[[ -p "$frame_set_fifo" ]] || mkfifo "$frame_set_fifo"
+
+frame_set_generator() {
+  while true; do
+    local set_frames=()
+    # Choose random colors once per set.
+    rand=$(( RANDOM % 256 ))
+    bg_escape=$(printf "${ESC}[48;5;%sm" "$rand")
+    background_code="$bg_escape"  # Global used by get_bg.
+    border_rand=$(( RANDOM % 256 ))
+    border_escape=$(printf "${ESC}[48;5;%sm" "$border_rand")
+    
+    local j
+    for (( j = 0; j < num_frames; j++ )); do
+      # Cycle through sprite frames (remember: frames are 1-indexed).
+      sprite_index=$(( (j % num_frames) + 1 ))
+      sprite_frame="${frames[sprite_index]}"
+      frame_buffer=""
+      fill_screen "$bg_escape"
+      print_frame "$sprite_frame"
+      draw_border "$border_escape"
+      set_frames+=("$frame_buffer")
+    done
+
+    # Build the output string dynamically using num_frames.
+    output=""
+    for (( i = 1; i <= num_frames; i++ )); do
+      output+=$(printf "%s\0" "${set_frames[i]}")
+    done
+
+    # Write the complete set to the FIFO.
+    printf "%s" "$output" > "$frame_set_fifo"
+    sleep 0.1
+  done
+}
+
+# Start the asynchronous frame set generator in the background,
+# redirecting any output to /dev/null.
+frame_set_generator > /dev/null 2>&1 &
+
+# Open the FIFO for reading once using a dedicated file descriptor.
+exec 3< "$frame_set_fifo"
+
+# Main
+main_loop() {
+  local j frame
+  # Load an initial set of frames from FD 3.
+  current_frames=()
+  for (( j = 0; j < num_frames; j++ )); do
+    IFS= read -r -d '' -u 3 frame
+    current_frames+=("$frame")
+  done
+
+  # We'll accumulate any extra frames read into this array.
+  new_frames=()
+
+  while true; do
+    # Loop through the current set.
+    for frame in "${current_frames[@]}"; do
+      # Clear the screen (move cursor to home) then print the frame.
+      printf "${ESC}[H%s" "$frame"
+      sleep $frame_duration
+
+      # Immediately poll the FIFO for any available frames.
+      while IFS= read -r -d '' -u 3 -t 0 frame; do
+        new_frames+=("$frame")
+      done
+
+      # If we've accumulated at least num_frames new frames, update the current set.
+      if (( ${#new_frames[@]} >= num_frames )); then
+        current_frames=("${new_frames[@]:0:$num_frames}")
+        new_frames=("${new_frames[@]:$num_frames}")
+      fi
+    done
+  done
+}
+
+main_loop
