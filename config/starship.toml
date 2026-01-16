@@ -22,6 +22,11 @@ disabled = true
 [azure]
 disabled = true
 
+# Hostname
+[hostname]
+ssh_only = true
+style = 'bold cyan'
+
 # Git
 [git_branch]
 symbol = '🌱 '
