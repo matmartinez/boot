@@ -8,36 +8,63 @@ echo " / /_/ / /_/ / /_/ / / /    "
 echo "/_____/\____/\____/ /_/     "
 echo ""                
 
-# Check/Install Homebrew
-# (by looking for `brew`). If found, skip the install automatically.
+load_brew_env() {
+  if command -v brew &>/dev/null; then
+    return 0
+  fi
 
-if command -v brew &>/dev/null; then
-  echo "Homebrew is already installed ($(brew --version | head -1))."
-  echo "Skipping Homebrew installation."
-else
+  if [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+  fi
+
+  command -v brew &>/dev/null
+}
+
+ensure_brew() {
+  if load_brew_env; then
+    echo "Homebrew is already installed ($(brew --version | head -1))."
+    echo "Skipping Homebrew installation."
+    return 0
+  fi
+
   read "?Homebrew not found. Would you like to install it? [y/N] " install_brew
   case "$install_brew" in
     [yY]*)
       echo "Installing Homebrew..."
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      # -- After installing, you might need to add brew to PATH (especially on Apple Silicon).
-      # For Apple Silicon, Homebrew installs to /opt/homebrew.
-      # For Intel, /usr/local/homebrew is typical.
-      # Usually the Homebrew install script will show you what to add to your PATH.
       ;;
     *)
-      echo "Skipping Homebrew installation."
+      echo "Homebrew is required to install the shell tools. Exiting."
+      exit 1
       ;;
   esac
-fi
+
+  if ! load_brew_env; then
+    echo "Homebrew installed, but brew is not on PATH."
+    echo "Add Homebrew to PATH and re-run this installer."
+    exit 1
+  fi
+}
+
+# Check/Install Homebrew (required for shell tooling).
+ensure_brew
 
 # Install shell
 
 # Prompt user for shell installation
-read "?Would you like to install shell? [y/N] " install_shell
+read "?Install shell tools? This is required to use Boot. [y/N] " install_shell
 
 case "$install_shell" in
   [yY]*)
+    if ! command -v zsh &>/dev/null; then
+      echo "Installing zsh (required)..."
+      brew install zsh
+    fi
+
     echo "Installing tools tap..."
     brew tap matmartinez/tools
     brew install blocksay
@@ -46,7 +73,8 @@ case "$install_shell" in
     brew install starship fzf
     ;;
   *)
-    echo "Skipping shell installation."
+    echo "Shell installation is required to proceed. Exiting."
+    exit 1
     ;;
 esac
 
