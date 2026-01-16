@@ -31,28 +31,24 @@ else
   esac
 fi
 
-# Check/Install Oh My Zsh
-# (by looking for ~/.oh-my-zsh). If found, skip the install automatically.
+# Install shell
 
-if [[ -d "$HOME/.oh-my-zsh" ]]; then
-  echo "Oh My Zsh is already installed at $HOME/.oh-my-zsh."
-  echo "Skipping Oh My Zsh installation."
-else
-  # Prompt user for Oh My Zsh installation
-  read "?Would you like to install Oh My Zsh? [y/N] " install_ohmyzsh
+# Prompt user for shell installation
+read "?Would you like to install shell? [y/N] " install_shell
 
-  case "$install_ohmyzsh" in
-    [yY]*)
-      echo "Installing Oh My Zsh..."
-      
-      # Run with --unattended for a non-interactive install
-      sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-      ;;
-    *)
-      echo "Skipping Oh My Zsh installation."
-      ;;
-  esac
-fi
+case "$install_shell" in
+  [yY]*)
+    echo "Installing tools tap..."
+    brew tap matmartinez/tools
+    brew install blocksay
+    
+    echo "Installing shell..."
+    brew install starship fzf
+    ;;
+  *)
+    echo "Skipping shell installation."
+    ;;
+esac
 
 # Determine the absolute path to the directory containing this repo.
 # In zsh, "${0:A:h}" gives the absolute path to the repo's directory.

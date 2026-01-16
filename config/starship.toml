@@ -1,0 +1,41 @@
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Inserts a blank line between shell prompts
+add_newline = true
+
+# Replace the '❯' symbol in the prompt with '⌘'
+[character]
+success_symbol = '[⌘](bold bright-blue)'
+error_symbol = '[⌘](bold bright-red)'
+
+# Disable stuff
+[aws]
+disabled = true
+
+[package]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[azure]
+disabled = true
+
+# Git
+[git_branch]
+symbol = '🌱 '
+style = 'bold green'
+
+# Node
+[nodejs]
+symbol = '💩 '
+style = 'bold yellow'
+
+# Battery
+[battery]
+full_symbol = '􀛨  '
+charging_symbol = '􀋦 '
+discharging_symbol = '􀛪  '
+empty_symbol = '􀛪  '
+unknown_symbol = '􀛪  '

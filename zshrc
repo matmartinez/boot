@@ -1,24 +1,16 @@
-# Path to your Oh My Zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
-
-# Set name of the theme to load.
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="steeef"
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
-
-source $ZSH/oh-my-zsh.sh
-
-# Path to your Boot installation.
 export BOOT="$HOME/.boot"
+export STARSHIP_CONFIG="$BOOT/config/starship.toml"
+export PATH="$BOOT/bin:$PATH" # Ensure Boot scripts are in your $PATH
 
-# Ensure Boot scripts are in your $PATH
-export PATH="$BOOT/bin:$PATH"
+export HISTSIZE=1000000000
+export SAVEHIST=$HISTSIZE
 
-source $BOOT/aliases.sh
-source $BOOT/bin/boot.sh
+setopt EXTENDED_HISTORY
+setopt autocd
+autoload -U compinit; compinit
+
+source <(fzf --zsh)
+
+eval "$(starship init zsh)"
+
+blocksay $(hostname | sed 's/\.local$//') # Remove .local if present
