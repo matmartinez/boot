@@ -31,32 +31,36 @@ ensure_brew() {
     return 0
   fi
 
-  read "?Homebrew not found. Would you like to install it? [y/N] " install_brew
+  printf "Homebrew not found. Would you like to install it? [y/N] "
+  read -r install_brew
   case "$install_brew" in
     [yY]*)
       echo "Installing Homebrew..."
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
       ;;
     *)
-      echo "Homebrew is required to install the shell tools. Exiting."
-      exit 1
+      echo "Homebrew is required to install the shell tools."
+      return 1
       ;;
   esac
 
   if ! load_brew_env; then
     echo "Homebrew installed, but brew is not on PATH."
     echo "Add Homebrew to PATH and re-run this installer."
-    exit 1
+    return 1
   fi
 }
 
 # Check/Install Homebrew (required for shell tooling).
-ensure_brew
+if ! ensure_brew; then
+  return 1 2>/dev/null || exit 1
+fi
 
 # Install shell
 
 # Prompt user for shell installation
-read "?Install shell tools? This is required to use Boot. [y/N] " install_shell
+printf "Install shell tools? This is required to use Boot. [y/N] "
+read -r install_shell
 
 case "$install_shell" in
   [yY]*)
@@ -73,14 +77,24 @@ case "$install_shell" in
     brew install starship fzf
     ;;
   *)
-    echo "Shell installation is required to proceed. Exiting."
-    exit 1
+    echo "Shell installation is required to proceed."
+    return 1 2>/dev/null || exit 1
     ;;
 esac
 
 # Determine the absolute path to the directory containing this repo.
-# In zsh, "${0:A:h}" gives the absolute path to the repo's directory.
-SCRIPT_DIR=${0:A:h}
+get_script_source() {
+  if [[ -n "${BASH_SOURCE[0]-}" ]]; then
+    echo "${BASH_SOURCE[0]}"
+  elif [[ -n "${ZSH_VERSION-}" ]]; then
+    echo "${(%):-%N}"
+  else
+    echo "$0"
+  fi
+}
+
+SCRIPT_SOURCE="$(get_script_source)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "$SCRIPT_SOURCE")" && pwd -P)"
 
 echo "Boot repository path is ${SCRIPT_DIR}"
 
