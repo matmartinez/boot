@@ -136,6 +136,49 @@ maybe_set_default_shell() {
   esac
 }
 
+ensure_linux_brew_shellenv() {
+  local zprofile marker brew_prefix brew_shell
+
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    return 0
+  fi
+
+  if command -v brew &>/dev/null; then
+    brew_prefix="$(brew --prefix 2>/dev/null || true)"
+    if [[ -n "$brew_prefix" && -x "$brew_prefix/bin/brew" ]]; then
+      brew_shell="$brew_prefix/bin/brew"
+    else
+      brew_shell="$(command -v brew)"
+    fi
+  elif [[ -x "$HOME/.linuxbrew/bin/brew" ]]; then
+    brew_shell="$HOME/.linuxbrew/bin/brew"
+  elif [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+    brew_shell="/home/linuxbrew/.linuxbrew/bin/brew"
+  elif [[ -x /usr/local/bin/brew ]]; then
+    brew_shell="/usr/local/bin/brew"
+  else
+    log "Homebrew not found; skipping ~/.zprofile setup."
+    return 0
+  fi
+
+  zprofile="$HOME/.zprofile"
+  marker="# Boot: Homebrew shellenv (Linux)"
+
+  if [[ -f "$zprofile" ]] && grep -qF "$marker" "$zprofile"; then
+    log "Homebrew shellenv already configured in ~/.zprofile."
+    return 0
+  fi
+
+  if [[ -s "$zprofile" ]]; then
+    printf "\n" >> "$zprofile"
+  fi
+
+  printf "%s\n" "$marker" >> "$zprofile"
+  printf 'eval "$("%s" shellenv)"\n' "$brew_shell" >> "$zprofile"
+
+  log "Added Homebrew shellenv to ~/.zprofile."
+}
+
 load_brew_env() {
   if command -v brew &>/dev/null; then
     return 0
@@ -284,6 +327,8 @@ main() {
   log "Symlinking ~/.zshrc to zshrc inside the repository..."
   ln -s "${repo_dir}/zshrc" ~/.zshrc
   log "Success! ~/.zshrc now points to ${repo_dir}/zshrc"
+
+  ensure_linux_brew_shellenv
 
   maybe_set_default_shell
 
