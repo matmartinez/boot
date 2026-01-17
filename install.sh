@@ -23,6 +23,77 @@ die() {
   exit 1
 }
 
+get_login_shell() {
+  if command -v getent &>/dev/null; then
+    getent passwd "$USER" | cut -d: -f7
+    return 0
+  fi
+
+  if command -v dscl &>/dev/null; then
+    dscl . -read "/Users/$USER" UserShell 2>/dev/null | awk '{print $2}'
+    return 0
+  fi
+
+  printf "%s\n" "${SHELL-}"
+}
+
+shell_in_etc_shells() {
+  local shell_path="$1"
+
+  if [[ ! -f /etc/shells ]]; then
+    return 1
+  fi
+
+  grep -qx "$shell_path" /etc/shells
+}
+
+maybe_set_default_shell() {
+  local current_shell zsh_path
+  current_shell="$(get_login_shell)"
+
+  if [[ -z "$current_shell" ]]; then
+    return 0
+  fi
+
+  if [[ "$(basename "$current_shell")" == "zsh" ]]; then
+    log "Default shell is already zsh ($current_shell)."
+    return 0
+  fi
+
+  log "Default shell is $current_shell."
+  printf "Make zsh your default shell? [y/N] "
+  read -r change_shell
+  case "$change_shell" in
+    [yY]*)
+      zsh_path="$(command -v zsh || true)"
+      if [[ -z "$zsh_path" ]]; then
+        log "zsh not found on PATH; cannot change default shell."
+        return 0
+      fi
+
+      if ! shell_in_etc_shells "$zsh_path"; then
+        log "zsh path is not listed in /etc/shells: $zsh_path"
+        log "Add it with: echo \"$zsh_path\" | sudo tee -a /etc/shells"
+      fi
+
+      if ! command -v chsh &>/dev/null; then
+        log "chsh not found; run: chsh -s \"$zsh_path\" \"$USER\""
+        return 0
+      fi
+
+      if chsh -s "$zsh_path" "$USER"; then
+        log "Default shell updated to $zsh_path."
+      else
+        log "Unable to change default shell automatically."
+        log "You can run: chsh -s \"$zsh_path\" \"$USER\""
+      fi
+      ;;
+    *)
+      log "Skipping default shell change."
+      ;;
+  esac
+}
+
 load_brew_env() {
   if command -v brew &>/dev/null; then
     return 0
@@ -171,6 +242,8 @@ main() {
   log "Symlinking ~/.zshrc to zshrc inside the repository..."
   ln -s "${repo_dir}/zshrc" ~/.zshrc
   log "Success! ~/.zshrc now points to ${repo_dir}/zshrc"
+
+  maybe_set_default_shell
 
   local boot_dir
   boot_dir="$HOME/.boot"
