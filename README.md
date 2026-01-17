@@ -14,8 +14,8 @@ Boot is like the good ol’ _Goodies Disk_ that came with early Macintosh comput
 
 ## What it does
 
-1. Install [Homebrew](https://brew.sh) (if needed).
-2. Install [Starship](https://starship.rs), [fzf](https://github.com/junegunn/fzf), and my [tools tap](https://github.com/matmartinez/homebrew-tools).
+1. Install [Homebrew](https://brew.sh) and [Zsh](https://www.zsh.org) (if needed).
+3. Install [Starship](https://starship.rs), [fzf](https://github.com/junegunn/fzf), and my [tools tap](https://github.com/matmartinez/homebrew-tools).
 3. Install Boot to `.zshrc` so to get some neat built-in scripts and aliases.
 
 ## Getting started

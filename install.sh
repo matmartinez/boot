@@ -65,7 +65,11 @@ maybe_set_default_shell() {
   read -r change_shell
   case "$change_shell" in
     [yY]*)
-      zsh_path="$(command -v zsh || true)"
+      if [[ -x /usr/bin/zsh ]]; then
+        zsh_path="/usr/bin/zsh"
+      else
+        zsh_path="$(command -v zsh || true)"
+      fi
       if [[ -z "$zsh_path" ]]; then
         log "zsh not found on PATH; cannot change default shell."
         return 0
@@ -73,7 +77,30 @@ maybe_set_default_shell() {
 
       if ! shell_in_etc_shells "$zsh_path"; then
         log "zsh path is not listed in /etc/shells: $zsh_path"
-        log "Add it with: echo \"$zsh_path\" | sudo tee -a /etc/shells"
+        if command -v sudo &>/dev/null; then
+          printf "Add it to /etc/shells with sudo? [y/N] "
+          read -r add_shell
+          case "$add_shell" in
+            [yY]*)
+              if echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null; then
+                log "Added $zsh_path to /etc/shells."
+              else
+                log "Failed to add $zsh_path to /etc/shells."
+              fi
+              ;;
+            *)
+              log "Skipping /etc/shells update."
+              ;;
+          esac
+        else
+          log "Add it with: echo \"$zsh_path\" | sudo tee -a /etc/shells"
+        fi
+      fi
+
+      if ! shell_in_etc_shells "$zsh_path"; then
+        log "zsh is still not listed in /etc/shells; cannot change default shell."
+        log "After adding it, run: chsh -s \"$zsh_path\" \"$USER\""
+        return 0
       fi
 
       if ! command -v chsh &>/dev/null; then
