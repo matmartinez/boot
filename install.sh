@@ -77,7 +77,22 @@ maybe_set_default_shell() {
 
       if ! shell_in_etc_shells "$zsh_path"; then
         log "zsh path is not listed in /etc/shells: $zsh_path"
-        if command -v sudo &>/dev/null; then
+        if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+          printf "Add it to /etc/shells? [y/N] "
+          read -r add_shell
+          case "$add_shell" in
+            [yY]*)
+              if echo "$zsh_path" >> /etc/shells; then
+                log "Added $zsh_path to /etc/shells."
+              else
+                log "Failed to add $zsh_path to /etc/shells."
+              fi
+              ;;
+            *)
+              log "Skipping /etc/shells update."
+              ;;
+          esac
+        elif command -v sudo &>/dev/null; then
           printf "Add it to /etc/shells with sudo? [y/N] "
           read -r add_shell
           case "$add_shell" in
@@ -93,7 +108,7 @@ maybe_set_default_shell() {
               ;;
           esac
         else
-          log "Add it with: echo \"$zsh_path\" | sudo tee -a /etc/shells"
+          log "Add it with: echo \"$zsh_path\" | tee -a /etc/shells"
         fi
       fi
 
