@@ -20,7 +20,15 @@ Boot is like the good ol’ _Goodies Disk_ that came with early Macintosh comput
 
 ## Getting started
 
-First, clone this repository to a permanent location of your liking on your hard drive. Maybe `~/Developer`? It looks really good on the Finder.
+Quick install (no clone):
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/matmartinez/boot/main/install.sh)"
+```
+
+This clones Boot into `~/.boot`.
+
+Or, clone this repository to a permanent location of your liking on your hard drive. Maybe `~/Developer`? It looks really good on the Finder.
 
 ```sh
 mkcd ~/Developer
@@ -31,7 +39,7 @@ cd boot
 Then run the install script:
 
 ```sh
-source boot-install.sh
+./install.sh
 ```
 
 You’re done.

@@ -243,7 +243,7 @@ create_default_directories() {
 brew_install_casks() {
   # Check if Homebrew is installed
   if ! command -v brew &>/dev/null; then
-    echo "Error: Homebrew is not installed. Probably forgot to run boot-install.sh"
+    echo "Error: Homebrew is not installed. Probably forgot to run install.sh"
     exit 1
   fi
 
