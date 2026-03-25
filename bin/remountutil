@@ -22,10 +22,45 @@ usage() {
   exit 1
 }
 
+# Function to check whether the keychain is unlocked.
+# We probe a guaranteed-missing item and inspect only lock-related errors.
+is_keychain_unlocked() {
+  local probe_output
+
+  probe_output=$(security find-generic-password -a "$USER" -s "__boot_keychain_probe__" -w 2>&1 >/dev/null)
+  if [[ "$probe_output" == *"User interaction is not allowed"* || "$probe_output" == *"keychain is locked"* ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
+# Function to ensure the keychain is unlocked before password retrieval.
+ensure_keychain_unlocked() {
+  if is_keychain_unlocked; then
+    return 0
+  fi
+
+  echo "Keychain is locked. Unlocking..." >&2
+  security unlock-keychain || {
+    echo "Failed to unlock keychain." >&2
+    return 1
+  }
+
+  if ! is_keychain_unlocked; then
+    echo "Keychain is still locked after unlock attempt." >&2
+    return 1
+  fi
+
+  return 0
+}
+
 # Function to retrieve passphrase
 get_passphrase() {
   local disk="$1"
   local passphrase
+
+  ensure_keychain_unlocked || return 1
 
   echo "Retrieving passphrase for $disk..." >&2
   passphrase=$(security find-generic-password -a "$USER" -s "unlockVolume_$disk" -w 2>/dev/null)
@@ -107,7 +142,7 @@ case "$action" in
   "unlock")
     [[ -z "$remote_host" ]] && { echo "Error: Missing remote host."; usage; }
     for disk in "${disks[@]}"; do
-        passphrase=$(get_passphrase "$disk") || { echo "Skipping $disk due to missing passphrase."; continue; }
+        passphrase=$(get_passphrase "$disk") || { echo "Skipping $disk due to passphrase retrieval failure."; continue; }
         unlock_disk_remote "$remote_host" "$disk" "$passphrase"
     done
     echo "All specified disks have been processed."
