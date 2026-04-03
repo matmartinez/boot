@@ -19,4 +19,4 @@ zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}' 'r:|?=**'
 eval "$(fzf --zsh)"
 eval "$(starship init zsh)"
 
-blocksay "${HOST%%.local}"
+blocksay "${HOST%%.*}"
